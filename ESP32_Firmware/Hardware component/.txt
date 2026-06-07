@@ -1,0 +1,31 @@
+Hardware 
+
+•	AD8232 (ECG(
+
+•	MAX3102(spo2)
+
+•	MPU-6050
+
+(Gyroscope + Accelerometer)
+
+•	ESP 32 
+
+•	0.96 OLED display 
+
+•	DS18B20
+
+(Temperature Sensor)
+
+Use
+
+MAX30102 (Heart Rate + SpO₂)
+
+DS18B20 (Temperature)
+
+MPU6050 (Activity + Sleep)
+
+AD8232 (optional ECG)
+
+Stm 32 + ESP 8266/ ESP 8266 dev / ESP 32
+
+
