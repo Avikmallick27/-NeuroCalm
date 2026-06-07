@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuroCalm | Multi-Tenant Cloud Biometric Companion</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+            --card-bg: rgba(255, 255, 255, 0.75);
+            --card-border: rgba(255, 255, 255, 0.5);
+            --text-main: #2c3e50;
+            --text-muted: #5a6c7d;
+            --accent-btn: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+            --accent-active: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            --shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+            --radius: 20px;
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+        
+        body { 
+            background: var(--bg-gradient); 
+            color: var(--text-main); 
+            margin: 0; 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            min-height: 100vh;
+        }
+        
+        .container { width: 100%; max-width: 800px; position: relative; }
+        
+        /* Profile Header */
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; width: 100%; }
+        .logo-text { font-size: 24px; font-weight: bold; color: #1a252f; margin: 0; }
+        .user-badge { background: var(--card-bg); border: 1px solid var(--card-border); padding: 8px 15px; border-radius: 20px; font-size: 14px; font-weight: 600; color: var(--text-muted); backdrop-filter: blur(12px); box-shadow: var(--shadow); cursor: pointer; transition: 0.2s;}
+        .user-badge:hover { background: rgba(255,255,255,0.9); }
+
+        /* Navigation */
+        .nav, .section {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .nav { display: flex; gap: 5px; margin-bottom: 20px; padding: 10px; overflow-x: auto;}
+        .nav button { flex: 1; min-width: 100px; padding: 15px 10px; border: none; background: transparent; font-size: 15px; font-weight: 600; color: var(--text-muted); cursor: pointer; border-radius: 12px; transition: 0.3s; }
+        .nav button.active { background: var(--accent-active); color: #1a252f; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+
+        .section { display: none; padding: 30px; animation: fadeIn 0.4s ease-in-out; margin-bottom: 20px; }
+        .section.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        h2 { margin-top: 0; font-size: 24px; color: #1a252f; }
+        p.subtitle { color: var(--text-muted); margin-bottom: 25px; }
+
+        /* Configuration and Connection Styles */
+        .config-box { background: rgba(255, 255, 255, 0.5); padding: 20px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.6); margin-bottom: 20px; }
+        .config-box h3 { margin-top: 0; margin-bottom: 10px; font-size: 16px; color: #2c3e50; }
+        
+        .connection-bar { display: flex; gap: 10px; align-items: center; background: rgba(255,255,255,0.5); padding: 15px; border-radius: 15px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.6); }
+        .status-badge { font-size: 14px; font-weight: bold; padding: 8px 12px; border-radius: 20px; background: #ecf0f1; color: #7f8c8d; white-space: nowrap; }
+        .status-badge.connected { background: #d4efdf; color: #27ae60; }
+        .status-badge.error { background: #fadbd8; color: #c0392b; }
+
+        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .metric-card { background: rgba(255, 255, 255, 0.6); padding: 20px 10px; border-radius: 15px; text-align: center; border: 1px solid var(--card-border); transition: 0.2s;}
+        .metric-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+        .metric-val { font-size: 32px; font-weight: bold; color: #2c3e50; margin-bottom: 5px; }
+        .metric-unit { font-size: 16px; color: var(--text-muted); font-weight: 500;}
+        
+        .chart-container { position: relative; height: 250px; width: 100%; border-radius: 15px; overflow: hidden; margin-bottom: 20px; background: rgba(255,255,255,0.5); border: 1px solid var(--card-border);}
+        .chart-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; background: rgba(255,255,255,0.8); color: var(--text-muted); font-weight: 600; font-size: 16px; z-index: 10; border-radius: 15px; flex-direction: column; }
+        canvas { max-height: 250px; width: 100% !important; }
+
+        /* Buttons & Inputs */
+        .btn-action { margin-top: 10px; padding: 14px 25px; background: var(--accent-btn); color: #1a252f; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .btn-action:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.1); }
+        .opt-btn { padding: 15px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.7); border-radius: 12px; cursor: pointer; font-size: 16px; transition: 0.2s; text-align: left; margin-bottom: 10px; width: 100%; color: var(--text-main); }
+        .opt-btn:hover { background: var(--accent-active); border-color: transparent; }
+        
+        .input-field { width: 100%; padding: 12px; border: 1px solid rgba(0,0,0,0.1); border-radius: 10px; background: rgba(255,255,255,0.8); font-size: 15px; outline: none; margin-bottom: 12px; }
+
+        /* Assessment UI */
+        .question-box { font-size: 20px; font-weight: 500; margin-bottom: 5px; }
+        .progress-text { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; font-weight: bold; display: flex; justify-content: space-between; }
+        .result-box { text-align: center; display: none; }
+
+        /* Reports UI */
+        .report-card { background: rgba(255,255,255,0.8); padding: 15px; border-radius: 15px; margin-bottom: 15px; border: 1px solid var(--card-border); box-shadow: 0 4px 15px rgba(0,0,0,0.03); text-align: left; }
+        .report-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 10px; margin-bottom: 10px; }
+        .report-type { font-size: 12px; font-weight: bold; padding: 4px 10px; border-radius: 10px; background: var(--accent-active); color: #1a252f; text-transform: uppercase; }
+        .report-date { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+        .report-summary-text { font-size: 14px; color: #2c3e50; font-weight: 500; }
+
+        /* Breathing UI */
+        .breathe-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; }
+        .breathe-circle { width: 150px; height: 150px; border-radius: 50%; background: var(--accent-active); box-shadow: 0 0 50px rgba(132, 250, 176, 0.5); display: flex; align-items: center; justify-content: center; color: #1a252f; font-weight: bold; font-size: 20px; transition: transform 0.1s linear; }
+
+        /* Modal Overlay */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: var(--card-bg); padding: 30px; border-radius: var(--radius); border: 1px solid var(--card-border); box-shadow: var(--shadow); width: 90%; max-width: 400px; text-align: center; }
+        
+        .quote-container { background: rgba(255,255,255,0.6); padding: 15px; border-radius: 15px; margin-bottom: 20px; border: 1px solid var(--card-border); text-align: center; font-style: italic; color: var(--text-muted); }
+
+        /* Cloud Dashboard UI */
+        .cloud-section-title { margin-top: 30px; margin-bottom: 15px; border-bottom: 2px solid var(--card-border); padding-bottom: 10px;}
+        .cloud-chart-wrapper { margin-bottom: 30px; }
+        .cloud-chart-wrapper h4 { margin-bottom: 10px; color: #2c3e50; text-align: center;}
+
+        /* PDF HIDDEN TEMPLATE */
+        #pdf-export-container {
+            position: absolute;
+            left: -9999px;
+            top: 0;
+            width: 800px;
+            background: white;
+            padding: 40px;
+            font-family: Arial, sans-serif;
+            color: #000;
+        }
+        
+        .pdf-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 110px;
+            color: rgba(0, 0, 0, 0.03);
+            font-weight: bold;
+            z-index: 0;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        
+        .pdf-content { position: relative; z-index: 1; }
+        .pdf-header { text-align: center; border-bottom: 2px solid #2c3e50; padding-bottom: 20px; margin-bottom: 30px; }
+        .pdf-title { font-size: 28px; font-weight: bold; color: #2c3e50; margin: 0; }
+        .pdf-subtitle { font-size: 14px; color: #7f8c8d; margin-top: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .pdf-section { margin-bottom: 30px; border: 1px solid #e0e0e0; padding: 20px; border-radius: 8px; background-color: #fafafa; }
+        .pdf-section-title { font-size: 18px; font-weight: bold; color: #2980b9; margin-top: 0; border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 15px; }
+        .pdf-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; border-bottom: 1px dashed #eee; padding-bottom: 5px; }
+        .pdf-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .pdf-label { font-weight: bold; color: #34495e; }
+        .pdf-value { color: #2c3e50; font-family: monospace; font-size: 15px; }
+        
+        .pdf-footer {
+            margin-top: 50px;
+            padding-top: 15px;
+            border-top: 2px solid #2c3e50;
+            font-size: 11px;
+            color: #7f8c8d;
+            text-align: justify;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+<div class="modal-overlay" id="auth-modal">
+    <div class="modal-content">
+        <h2>Welcome to NeuroCalm</h2>
+        <p class="subtitle" style="margin-bottom: 20px;">Let's set up your profile.</p>
+        <input type="text" id="user-name" class="input-field" placeholder="Enter your Name">
+        <input type="date" id="user-dob" class="input-field" title="Date of Birth">
+        <button class="btn-action" style="width: 100%;" onclick="createUserProfile()">Create Profile</button>
+    </div>
+</div>
+
+<div class="container">
+    <div class="header-top">
+        <h1 class="logo-text">NeuroCalm</h1>
+        <div class="user-badge" id="profile-display" onclick="clearProfile()" title="Click to logout/reset">Guest Mode</div>
+    </div>
+
+    <div class="nav">
+        <button class="active" onclick="switchTab('dashboard')">Live Vitals</button>
+        <button onclick="switchTab('assessment')">Check-in</button>
+        <button onclick="switchTab('breathe')">Grounding</button>
+        <button onclick="switchTab('reports')">Cloud Reports</button>
+    </div>
+
+    <div id="dashboard" class="section active">
+        <h2>Cloud Sensor Dashboard</h2>
+        <div id="quote-container" class="quote-container">Loading daily affirmation...</div>
+
+        <div class="config-box">
+            <h3>🔑 Cloud Source Configuration</h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 0; margin-bottom: 10px;">
+                Enter a Google Spreadsheet ID below to instantly link individual sensor data streams.
+            </p>
+            <input type="text" id="target-sheet-id" class="input-field" style="margin-bottom: 10px;" placeholder="Paste Google Spreadsheet ID here...">
+            <button class="btn-action" style="margin-top: 0; font-size: 13px; padding: 8px 15px; background: var(--accent-active);" onclick="saveSpreadsheetId()">
+                💾 Save ID Credentials
+            </button>
+        </div>
+
+        <div class="connection-bar">
+            <button class="btn-action" id="sync-btn" style="margin-top:0; flex: 1; background: #8fd3f4;" onclick="syncDashboardData()">
+                🔄 Fetch Latest Google Sheets Data
+            </button>
+            <div class="status-badge" id="sync-status">Awaiting Sync</div>
+        </div>
+        
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-val" id="bpm-val">-- <span class="metric-unit">bpm</span></div>
+                <div style="color: var(--text-muted); font-size: 14px;">Heart Rate</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-val" id="spo2-val">-- <span class="metric-unit">%</span></div>
+                <div style="color: var(--text-muted); font-size: 14px;">Blood Oxygen</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-val" id="stress-val">--</div>
+                <div style="color: var(--text-muted); font-size: 14px;">Est. Stress Level</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-val" id="temp-val">-- <span class="metric-unit">°C</span></div>
+                <div style="color: var(--text-muted); font-size: 14px;">Body Temp</div>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <div id="chart-overlay" class="chart-overlay">
+                <span>Data not synced.</span>
+                <span style="font-size: 13px; margin-top: 5px;">Click 'Fetch Latest Google Sheets Data' above.</span>
+            </div>
+            <canvas id="ecgChart"></canvas>
+        </div>
+
+        <button class="btn-action" style="width: 100%; background: linear-gradient(135deg, #a1c4fd 0%, #e0c3fc 100%);" onclick="saveSensorReport()">
+            💾 Save These Vitals to Report Summary
+        </button>
+    </div>
+
+    <div id="assessment" class="section">
+        <h2>How are you feeling?</h2>
+        <p class="subtitle">NeuroCalm adapts to your answers to identify patterns accurately.</p>
+        
+        <div id="quiz-container">
+            <div class="progress-text">
+                <span id="ai-status">Status: Establishing Baseline...</span>
+                <span id="q-counter">Q: 1</span>
+            </div>
+            <div class="question-box" id="question-text">Loading...</div>
+            <div id="options-container" style="margin-top: 20px;"></div>
+        </div>
+
+        <div id="result-container" class="result-box">
+            <h3 id="result-title"></h3>
+            <p id="result-desc"></p>
+            <p style="font-size: 13px; color: #27ae60; font-weight: bold; margin-top: 15px;">✓ Results automatically saved to Report Summary</p>
+            <button class="btn-action" onclick="switchTab('breathe')">Start Breathing Exercise</button>
+            <br>
+            <button class="btn-action" style="background: transparent; border: 1px solid var(--text-muted); margin-top: 15px;" onclick="resetAssessment()">Take Assessment Again</button>
+        </div>
+    </div>
+
+    <div id="breathe" class="section" style="text-align: center;">
+        <h2>Resonant Breathing</h2>
+        <p class="subtitle">Follow the circle to lower your heart rate and stabilize SpO2.</p>
+        <div class="breathe-container">
+            <div class="breathe-circle" id="breathe-circle">Ready</div>
+        </div>
+        <button class="btn-action" id="breathe-btn" onclick="toggleBreathing()">Start Session</button>
+    </div>
+
+    <div id="reports" class="section">
+        
+        <h2>Cloud Sensor Analytics</h2>
+        <p class="subtitle">Fetch historical sensor trends directly from Google Sheets.</p>
+        
+        <button class="btn-action" id="fetch-cloud-btn" style="width: 100%; background: #a1c4fd; color: #1a252f; margin-bottom: 20px;" onclick="fetchCloudHistory()">
+            ☁️ Load Historical Cloud Charts
+        </button>
+        <div id="cloud-loading" style="display: none; text-align: center; color: var(--text-muted); margin-bottom: 20px;">Fetching and rendering data...</div>
+
+        <div id="cloud-charts-container" style="display: none;">
+            <div class="cloud-chart-wrapper">
+                <h4>MAX30102: Heart Rate & SpO2 History</h4>
+                <div class="chart-container"><canvas id="cloudMaxChart"></canvas></div>
+            </div>
+
+            <div class="cloud-chart-wrapper">
+                <h4>DS18B20: Body Temperature History</h4>
+                <div class="chart-container"><canvas id="cloudTempChart"></canvas></div>
+            </div>
+
+            <div class="cloud-chart-wrapper">
+                <h4>MPU6050: Accelerometer Motion History</h4>
+                <div class="chart-container"><canvas id="cloudMotionChart"></canvas></div>
+            </div>
+        </div>
+
+        <h2 class="cloud-section-title">Clinical Report Generation</h2>
+        <p class="subtitle">Combine your latest synced vitals and check-in history into a formal document.</p>
+        
+        <button class="btn-action" style="width: 100%; background: transparent; border: 1px solid #2c3e50; color: #2c3e50; margin-bottom: 20px;" onclick="generatePDF()">
+            📄 Generate Detailed Clinical PDF
+        </button>
+
+        <div id="reports-list">
+            </div>
+
+        <button class="btn-action" style="width: 100%; background: transparent; border: 1px solid #e74c3c; color: #e74c3c; margin-top: 10px;" onclick="clearReports()">
+            🗑️ Clear Summary History
+        </button>
+    </div>
+</div>
+
+<div id="pdf-export-container">
+    <div class="pdf-watermark">NeuroCalm System</div>
+    
+    <div class="pdf-content">
+        <div class="pdf-header">
+            <h1 class="pdf-title">NeuroCalm System Report</h1>
+            <div class="pdf-subtitle">Comprehensive Biometric & Clinical Assessment Analysis</div>
+        </div>
+        
+        <div class="pdf-section">
+            <h2 class="pdf-section-title">Patient Profile</h2>
+            <div class="pdf-row"><span class="pdf-label">Patient Name:</span> <span class="pdf-value" id="pdf-name">--</span></div>
+            <div class="pdf-row"><span class="pdf-label">System ID Number:</span> <span class="pdf-value" id="pdf-id">--</span></div>
+            <div class="pdf-row"><span class="pdf-label">Date of Birth:</span> <span class="pdf-value" id="pdf-dob">--</span></div>
+            <div class="pdf-row"><span class="pdf-label">Report Generation Date:</span> <span class="pdf-value" id="pdf-date">--</span></div>
+        </div>
+
+        <div class="pdf-section">
+            <h2 class="pdf-section-title">Cloud Synced Biometrics (Google Sheets API)</h2>
+            <div class="pdf-row"><span class="pdf-label">Data Synced On:</span> <span class="pdf-value" id="pdf-vitals-date">No Data Logged</span></div>
+            <div class="pdf-row"><span class="pdf-label">Heart Rate (BPM):</span> <span class="pdf-value" id="pdf-bpm">--</span></div>
+            <div class="pdf-row"><span class="pdf-label">Blood Oxygen Saturation (SpO2):</span> <span class="pdf-value" id="pdf-spo2">--</span></div>
+            <div class="pdf-row"><span class="pdf-label">Estimated Stress Level:</span> <span class="pdf-value" id="pdf-gsr">--</span></div>
+            <div class="pdf-row"><span class="pdf-label">Core Body Temperature:</span> <span class="pdf-value" id="pdf-temp">--</span></div>
+        </div>
+
+        <div class="pdf-section">
+            <h2 class="pdf-section-title">Clinical Self-Assessment</h2>
+            <div class="pdf-row"><span class="pdf-label">Assessment Completed On:</span> <span class="pdf-value" id="pdf-checkin-date">No Assessment Logged</span></div>
+            <div class="pdf-row"><span class="pdf-label">Primary Indicator / Focus:</span> <span class="pdf-value" id="pdf-issue">--</span></div>
+            <div class="pdf-row"><span class="pdf-label">Detected Severity Scale:</span> <span class="pdf-value" id="pdf-severity">--</span></div>
+            <div class="pdf-row"><span class="pdf-label">Calculated Sleep Pattern:</span> <span class="pdf-value" id="pdf-sleep">--</span></div>
+        </div>
+
+        <div class="pdf-footer">
+            <strong>DISCLAIMER:</strong> This is an assessment detail generated by NeuroCalm, a cloud-connected biometric wellness interface. The data recorded herein relies on hardware sensor arrays pushed to a cloud database and subjective user inputs. <strong>It is NOT a certified laboratory-oriented diagnostic report, nor does it constitute professional medical advice, diagnosis, or treatment.</strong> Always seek the direct consultation of a physician or other qualified medical professional for health concerns. Do not alter medication or disregard professional medical advice based on the data contained in this document.
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // 0. DYNAMIC ENDPOINT ROUTER LOGIC
+    // ==========================================
+    const DEFAULT_SHEET_ID = "1fmp7iZajEqncIIzWeWOTrPxzgqdT96GknhLyDamSmlA";
+    
+    // Initialize or load configuration from LocalStorage
+    function getSpreadsheetId() {
+        return localStorage.getItem('neuroSpreadsheetId') || DEFAULT_SHEET_ID;
+    }
+
+    function saveSpreadsheetId() {
+        const customId = document.getElementById('target-sheet-id').value.trim();
+        if(!customId) {
+            alert("Please enter a valid spreadsheet ID string.");
+            return;
+        }
+        localStorage.setItem('neuroSpreadsheetId', customId);
+        alert("Configuration updated successfully! Re-routing cloud endpoints.");
+        syncDashboardData();
+    }
+
+    // Helper to generate dynamic OpenSheet links on the fly
+    function getApiUrl(sheetTabName) {
+        const id = getSpreadsheetId();
+        return `https://opensheet.elk.sh/${id}/${sheetTabName}`;
+    }
+
+    // Global variable to hold fetched data for saving
+    let liveVitals = { bpm: "--", spo2: "--", gsr: "--", temp: "--" };
+
+    // ==========================================
+    // 1. LOCAL AUTHENTICATION & QUOTES
+    // ==========================================
+    function checkAuth() {
+        const user = localStorage.getItem('neuroUser');
+        if (!user) document.getElementById('auth-modal').style.display = 'flex';
+        else updateProfileUI(JSON.parse(user));
+    }
+
+    function createUserProfile() {
+        const name = document.getElementById('user-name').value;
+        const dob = document.getElementById('user-dob').value;
+        if(!name || !dob) { alert("Please enter both Name and DOB"); return; }
+        const neuroId = `NC-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+        const userData = { name, dob, id: neuroId };
+        localStorage.setItem('neuroUser', JSON.stringify(userData));
+        document.getElementById('auth-modal').style.display = 'none';
+        updateProfileUI(userData);
+    }
+
+    function updateProfileUI(user) {
+        document.getElementById('profile-display').innerText = `${user.name} | ID: ${user.id}`;
+    }
+
+    function clearProfile() {
+        if(confirm("Do you want to log out and clear your profile data?")) {
+            localStorage.removeItem('neuroUser');
+            localStorage.removeItem('neuroSpreadsheetId');
+            location.reload();
+        }
+    }
+
+    const localQuotes = [
+        { text: "Take a deep breath. You are doing great today.", author: "NeuroCalm" },
+        { text: "Quiet the mind, and the soul will speak.", author: "Ma Jaya Sati Bhagavati" },
+        { text: "Your mental health is a priority. Your happiness is an essential.", author: "Self Care" }
+    ];
+
+    window.onload = () => {
+        checkAuth();
+        document.getElementById('target-sheet-id').value = getSpreadsheetId();
+        const rand = localQuotes[Math.floor(Math.random() * localQuotes.length)];
+        document.getElementById('quote-container').innerHTML = `"${rand.text}" <br><strong style="font-size:12px; margin-top:5px; display:block;">- ${rand.author}</strong>`;
+        renderReports(); 
+    };
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+        if(tabId === 'reports') renderReports(); 
+    }
+
+    // ==========================================
+    // 2. DASHBOARD CLOUD SYNC & CHART (ECG)
+    // ==========================================
+    const ctxLive = document.getElementById('ecgChart').getContext('2d');
+    const ecgChartLive = new Chart(ctxLive, { 
+        type: 'line', 
+        data: { labels: Array(50).fill(''), datasets: [{ label: 'ECG', data: Array(50).fill(0), borderColor: '#87aca3', borderWidth: 2, tension: 0.2, pointRadius: 0 }] }, 
+        options: { responsive: true, maintainAspectRatio: false, animation: { duration: 500 }, scales: { x: { display: false }, y: { display: false } }, plugins: { legend: { display: false } } }
+    });
+
+    async function syncDashboardData() {
+        const status = document.getElementById('sync-status');
+        const btn = document.getElementById('sync-btn');
+        status.innerText = "Syncing from Sheets...";
+        status.className = "status-badge";
+        
+        try {
+            // Dynamically query endpoints built with current active configuration ID
+            const [resMax, resTemp, resEcg] = await Promise.all([
+                fetch(getApiUrl("Sheet_MAX30102")), 
+                fetch(getApiUrl("Sheet_DS18B20")), 
+                fetch(getApiUrl("Sheet_AD8232"))
+            ]);
+
+            const dataMax = await resMax.json();
+            const dataTemp = await resTemp.json();
+            const dataEcg = await resEcg.json();
+
+            // Get the absolute last row of data for the dashboard numbers
+            const latestMax = dataMax[dataMax.length - 1] || {};
+            const latestTemp = dataTemp[dataTemp.length - 1] || {};
+            
+            let bpm = latestMax.BPM ? parseFloat(latestMax.BPM).toFixed(1) : "--";
+            let spo2 = latestMax.SpO2 ? parseFloat(latestMax.SpO2).toFixed(1) : "--";
+            let temp = latestTemp.Temperature ? parseFloat(latestTemp.Temperature).toFixed(1) : "--";
+            
+            // Estimate stress based on BPM
+            let stressLevel = "Calm";
+            if (bpm !== "--") {
+                let bpmNum = parseFloat(bpm);
+                if (bpmNum > 90) stressLevel = "High Stress";
+                else if (bpmNum > 80) stressLevel = "Elevated";
+            }
+
+            // Update DOM Elements
+            document.getElementById('bpm-val').innerHTML = `${bpm} <span class="metric-unit">bpm</span>`;
+            document.getElementById('spo2-val').innerHTML = `${spo2} <span class="metric-unit">%</span>`;
+            document.getElementById('temp-val').innerHTML = `${temp} <span class="metric-unit">°C</span>`;
+            document.getElementById('stress-val').innerText = stressLevel;
+            
+            liveVitals = { bpm, spo2, gsr: stressLevel, temp };
+
+            // Update ECG Chart (Fetch last 50 data points)
+            if (dataEcg.length > 0) {
+                const recentEcg = dataEcg.slice(-50).map(d => parseFloat(d.ECG) || 0);
+                while(recentEcg.length < 50) recentEcg.unshift(0); 
+                ecgChartLive.data.datasets[0].data = recentEcg;
+                ecgChartLive.update();
+                document.getElementById('chart-overlay').style.display = 'none';
+            }
+
+            status.innerText = "Successfully Synced";
+            status.className = "status-badge connected";
+            
+            // Trigger Grounding if highly stressed
+            if (stressLevel === "High Stress" && parseFloat(bpm) > 100) {
+                switchTab('breathe');
+                if (!isBreathing) toggleBreathing();
+            }
+
+        } catch (error) {
+            console.error("Cloud Sync Error:", error);
+            status.innerText = "Sync Failed";
+            status.className = "status-badge error";
+            alert("Could not pull data from Google Sheets. Ensure your Spreadsheet ID is correct and data tabs are public.");
+        }
+    }
+
+
+    // ==========================================
+    // 3. CLOUD HISTORICAL ANALYTICS (Charts)
+    // ==========================================
+    let cloudChartMax, cloudChartTemp, cloudChartMotion;
+
+    async function fetchCloudHistory() {
+        document.getElementById('fetch-cloud-btn').style.display = 'none';
+        document.getElementById('cloud-loading').style.display = 'block';
+        document.getElementById('cloud-charts-container').style.display = 'none';
+
+        try {
+            const [resMax, resTemp, resMotion] = await Promise.all([
+                fetch(getApiUrl("Sheet_MAX30102")), 
+                fetch(getApiUrl("Sheet_DS18B20")), 
+                fetch(getApiUrl("Sheet_MPU6050"))
+            ]);
+
+            const dataMax = await resMax.json();
+            const dataTemp = await resTemp.json();
+            const dataMotion = await resMotion.json();
+
+            const sliceData = (arr) => arr.slice(-30);
+
+            renderCloudMaxChart(sliceData(dataMax));
+            renderCloudTempChart(sliceData(dataTemp));
+            renderCloudMotionChart(sliceData(dataMotion));
+
+            document.getElementById('cloud-loading').style.display = 'none';
+            document.getElementById('cloud-charts-container').style.display = 'block';
+            document.getElementById('fetch-cloud-btn').style.display = 'block';
+            document.getElementById('fetch-cloud-btn').innerText = "🔄 Refresh Cloud Analytics";
+
+        } catch (error) {
+            console.error("Historical Analytics Error:", error);
+            document.getElementById('cloud-loading').innerText = "Error fetching analytical data.";
+            document.getElementById('fetch-cloud-btn').style.display = 'block';
+        }
+    }
+
+    function renderCloudMaxChart(data) {
+        if(cloudChartMax) cloudChartMax.destroy();
+        const ctx = document.getElementById('cloudMaxChart').getContext('2d');
+        const labels = data.map(d => d.Timestamp ? d.Timestamp.substring(11, 19) : '');
+        const bpmData = data.map(d => parseFloat(d.BPM) || 0);
+        const spo2Data = data.map(d => parseFloat(d.SpO2) || 0);
+
+        cloudChartMax = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'BPM', data: bpmData, borderColor: '#e74c3c', borderWidth: 2, tension: 0.3 },
+                    { label: 'SpO2 (%)', data: spo2Data, borderColor: '#3498db', borderWidth: 2, tension: 0.3 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false } } }
+        });
+    }
+
+    function renderCloudTempChart(data) {
+        if(cloudChartTemp) cloudChartTemp.destroy();
+        const ctx = document.getElementById('cloudTempChart').getContext('2d');
+        const labels = data.map(d => d.Timestamp ? d.Timestamp.substring(11, 19) : '');
+        const tempData = data.map(d => parseFloat(d.Temperature) || 0);
+
+        cloudChartTemp = new Chart(ctx, {
+            type: 'line',
+            data: { labels: labels, datasets: [{ label: 'Temperature (°C)', data: tempData, borderColor: '#f39c12', backgroundColor: 'rgba(243, 156, 18, 0.2)', borderWidth: 2, fill: true, tension: 0.3 }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false } } }
+        });
+    }
+
+    function renderCloudMotionChart(data) {
+        if(cloudChartMotion) cloudChartMotion.destroy();
+        const ctx = document.getElementById('cloudMotionChart').getContext('2d');
+        const labels = data.map(d => d.Timestamp ? d.Timestamp.substring(11, 19) : '');
+        const accX = data.map(d => parseFloat(d.AccX) || 0);
+        const accY = data.map(d => parseFloat(d.AccY) || 0);
+        const accZ = data.map(d => parseFloat(d.AccZ) || 0);
+
+        cloudChartMotion = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Acc X', data: accX, borderColor: '#9b59b6', borderWidth: 1, pointRadius: 0 },
+                    { label: 'Acc Y', data: accY, borderColor: '#2ecc71', borderWidth: 1, pointRadius: 0 },
+                    { label: 'Acc Z', data: accZ, borderColor: '#34495e', borderWidth: 1, pointRadius: 0 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false } } }
+        });
+    }
+
+    // ==========================================
+    // 4. REPORT ENGINE & PDF GENERATOR
+    // ==========================================
+    function getFormattedDate() { return new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+
+    function saveSensorReport() {
+        if (liveVitals.bpm === "--") {
+            alert("Please click 'Fetch Latest Google Sheets Data' first before saving.");
+            return;
+        }
+        const report = { id: Date.now(), type: "Biometrics", date: getFormattedDate(), data: { ...liveVitals } };
+        let history = JSON.parse(localStorage.getItem('neuroReports') || '[]');
+        history.unshift(report); localStorage.setItem('neuroReports', JSON.stringify(history));
+        alert("Success! Biometric summary saved to Local History.");
+    }
+
+    function saveAssessmentReport(primaryIssue, severity, sleepPattern) {
+        const report = { id: Date.now(), type: "Check-in", date: getFormattedDate(), data: { issue: primaryIssue, severity: severity, sleepPattern: sleepPattern } };
+        let history = JSON.parse(localStorage.getItem('neuroReports') || '[]');
+        history.unshift(report); localStorage.setItem('neuroReports', JSON.stringify(history));
+    }
+
+    function renderReports() {
+        const list = document.getElementById('reports-list');
+        let history = JSON.parse(localStorage.getItem('neuroReports') || '[]');
+        if(history.length === 0) { list.innerHTML = "<p style='text-align:center; color:var(--text-muted);'>No summary data logged yet.</p>"; return; }
+
+        list.innerHTML = history.map(r => {
+            if (r.type === "Biometrics") {
+                return `<div class="report-card">
+                    <div class="report-header">
+                        <span class="report-type" style="background: #d4efdf;">🩺 Vitals</span>
+                        <span class="report-date">${r.date}</span>
+                    </div>
+                    <div class="report-summary-text">Avg: ${r.data.bpm} bpm / ${r.data.spo2}% SpO2</div>
+                </div>`;
+            } else {
+                return `<div class="report-card">
+                    <div class="report-header">
+                        <span class="report-type" style="background: #fadbd8; color: #c0392b;">📝 Check-in</span>
+                        <span class="report-date">${r.date}</span>
+                    </div>
+                    <div class="report-summary-text">${r.data.severity} ${r.data.issue.charAt(0).toUpperCase() + r.data.issue.slice(1)}</div>
+                </div>`;
+            }
+        }).join('');
+    }
+
+    function generatePDF() {
+        const userStr = localStorage.getItem('neuroUser');
+        if (!userStr) { alert("Profile missing. Please refresh and create a profile."); return; }
+        const user = JSON.parse(userStr);
+        
+        const history = JSON.parse(localStorage.getItem('neuroReports') || '[]');
+        if(history.length === 0) { alert("No data available to generate a report. Sync cloud vitals or take a check-in first."); return; }
+
+        const latestVitals = history.find(r => r.type === "Biometrics");
+        const latestCheckin = history.find(r => r.type === "Check-in");
+
+        document.getElementById('pdf-name').innerText = user.name;
+        document.getElementById('pdf-id').innerText = user.id;
+        document.getElementById('pdf-dob').innerText = user.dob;
+        document.getElementById('pdf-date').innerText = new Date().toLocaleString();
+
+        if (latestVitals) {
+            document.getElementById('pdf-vitals-date').innerText = latestVitals.date;
+            document.getElementById('pdf-bpm').innerText = `${latestVitals.data.bpm} bpm`;
+            document.getElementById('pdf-spo2').innerText = `${latestVitals.data.spo2} %`;
+            document.getElementById('pdf-gsr').innerText = latestVitals.data.gsr;
+            document.getElementById('pdf-temp').innerText = `${latestVitals.data.temp} °C`;
+        }
+
+        if (latestCheckin) {
+            document.getElementById('pdf-checkin-date').innerText = latestCheckin.date;
+            document.getElementById('pdf-issue').innerText = latestCheckin.data.issue.toUpperCase();
+            document.getElementById('pdf-severity').innerText = latestCheckin.data.severity;
+            document.getElementById('pdf-sleep').innerText = latestCheckin.data.sleepPattern;
+        }
+
+        const element = document.getElementById('pdf-export-container');
+        const opt = {
+            margin:       0,
+            filename:     `NeuroCalm_Detailed_Report_${user.name.replace(/\s+/g, '_')}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2 },
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        element.style.left = "0";
+        element.style.zIndex = "-100";
+        html2pdf().set(opt).from(element).save().then(() => {
+            element.style.left = "-9999px"; 
+        });
+    }
+
+    // ==========================================
+    // 5. CLINICAL ASSESSMENT ENGINE
+    // ==========================================
+    const standardOptions = [ { text: "Not at all", score: 0 }, { text: "Several days", score: 1 }, { text: "More than half the days", score: 2 }, { text: "Nearly every day", score: 3 } ];
+    const questionPool = [
+        { q: "Little interest or pleasure in doing things?", cat: "depression", type: "root" },
+        { q: "Feeling nervous, anxious, or on edge?", cat: "anxiety", type: "root" },
+        { q: "Difficulty falling or staying asleep?", cat: "sleep", type: "root" },
+        { q: "How often have you felt overwhelmed by your responsibilities?", cat: "stress", type: "root" },
+        { q: "Feeling down, depressed, or hopeless?", cat: "depression" },
+        { q: "Not being able to stop or control worrying?", cat: "anxiety" },
+        { q: "How often have you found that you could not cope with all the things you had to do?", cat: "stress" },
+        { q: "Problems waking up too early and not being able to sleep again?", cat: "sleep" },
+        { q: "Do you wake up constantly in the middle of the night?", cat: "sleep" },
+        { q: "Trouble relaxing?", cat: "anxiety" }
+    ];
+
+    let scores = { depression: 0, anxiety: 0, sleep: 0, stress: 0 };
+    let questionsAskedCount = 0; let askedQuestions = new Set();
+    const CONFIDENCE_THRESHOLD = 8; const MAX_QUESTIONS = 8;
+
+    function renderQuestion() {
+        const qText = document.getElementById('question-text'); const optContainer = document.getElementById('options-container');
+        if(!qText) return;
+        document.getElementById('q-counter').innerText = `Q: ${questionsAskedCount + 1}`;
+        optContainer.innerHTML = '';
+        let nextQ = determineNextQuestion();
+        if (!nextQ) { showResults(); return; }
+        qText.innerText = nextQ.q;
+        standardOptions.forEach(opt => {
+            let btn = document.createElement('button'); btn.className = 'opt-btn'; btn.innerText = opt.text;
+            btn.onclick = () => handleAnswer(opt.score, nextQ); optContainer.appendChild(btn);
+        });
+    }
+
+    function determineNextQuestion() {
+        let unaskedRoots = questionPool.filter(q => q.type === "root" && !askedQuestions.has(q.q));
+        if (unaskedRoots.length > 0) return unaskedRoots[0];
+        let highestCat = Object.keys(scores).reduce((a, b) => scores[a] > scores[b] ? a : b);
+        let targetedQuestions = questionPool.filter(q => q.cat === highestCat && !askedQuestions.has(q.q));
+        if (targetedQuestions.length > 0) return targetedQuestions[0];
+        let anyUnasked = questionPool.filter(q => !askedQuestions.has(q.q));
+        return anyUnasked.length > 0 ? anyUnasked[0] : null;
+    }
+
+    function handleAnswer(score, questionObj) {
+        scores[questionObj.cat] += questionObj.reverse ? (3 - score) : score;
+        askedQuestions.add(questionObj.q); questionsAskedCount++;
+        let highestScore = Math.max(...Object.values(scores));
+        if (highestScore >= CONFIDENCE_THRESHOLD || questionsAskedCount >= MAX_QUESTIONS) showResults();
+        else renderQuestion();
+    }
+
+    function showResults() {
+        document.getElementById('quiz-container').style.display = 'none';
+        document.getElementById('result-container').style.display = 'block';
+        
+        let primaryIssue = Object.keys(scores).reduce((a, b) => scores[a] > scores[b] ? a : b);
+        let maxScore = scores[primaryIssue];
+        let severity = maxScore >= 10 ? "Moderately Severe" : maxScore >= 6 ? "Moderate" : maxScore >= 3 ? "Mild" : "Minimal";
+        let sleepPattern = scores.sleep >= 6 ? "High Insomnia Risk" : scores.sleep >= 3 ? "Disturbed / Restless" : "Normal";
+        
+        saveAssessmentReport(primaryIssue, severity, sleepPattern);
+        
+        document.getElementById('result-title').innerText = `${severity} ${primaryIssue.charAt(0).toUpperCase() + primaryIssue.slice(1)} Detected`;
+        document.getElementById('result-desc').innerText = `NeuroCalm's assessment indicates markers for ${primaryIssue}. Your clinical severity and sleep patterns have been securely logged.`;
+    }
+
+    function resetAssessment() {
+        scores = { depression: 0, anxiety: 0, sleep: 0, stress: 0 }; askedQuestions.clear(); questionsAskedCount = 0;
+        document.getElementById('quiz-container').style.display = 'block'; document.getElementById('result-container').style.display = 'none';
+        renderQuestion();
+    }
+    renderQuestion();
+
+    // ==========================================
+    // 6. BREATHING APP
+    // ==========================================
+    let isBreathing = false; let breathPhase = 0; let breatheTimer;
+    function toggleBreathing() {
+        const circle = document.getElementById('breathe-circle'); const btn = document.getElementById('breathe-btn');
+        if(isBreathing) { clearInterval(breatheTimer); circle.style.transform = 'scale(1)'; circle.innerText = "Ready"; btn.innerText = "Start Session"; isBreathing = false; return; }
+        isBreathing = true; btn.innerText = "Stop Session";
+        function breathCycle() { circle.style.transition = 'transform 5s ease-in-out'; if(breathPhase === 0) { circle.style.transform = 'scale(1.8)'; circle.innerText = "Inhale..."; breathPhase = 1; } else { circle.style.transform = 'scale(1)'; circle.innerText = "Exhale..."; breathPhase = 0; } }
+        breathCycle(); breatheTimer = setInterval(breathCycle, 5000);
+    }
+    
+    function clearReports() {
+        if(confirm("Are you sure you want to delete all local history summaries?")) {
+            localStorage.removeItem('neuroReports'); renderReports();
+        }
+    }
+</script>
+
+</body>
+</html>
