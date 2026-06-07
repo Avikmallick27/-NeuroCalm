@@ -1,0 +1,22 @@
+Connection 
+
+3V3 → All VCC
+
+GND → All GND
+
+D21 → SDA (MAX30102 + MPU6050 + OLED)
+
+D22 → SCL (MAX30102 + MPU6050 + OLED)
+
+D4  → DS18B20 (+ resistor)
+
+VP  → ECG Output
+
+D5  → ECG LO+
+
+D18 → ECG LO-
+
+D19 → Buzzer
+
+D2  → LED
+
