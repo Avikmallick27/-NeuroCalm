@@ -14,8 +14,8 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
-const char* ssid = "Avikmallick27";          // <-- Put your Wi-Fi name here
-const char* password = "Avikmallick27";  // <-- Put your Wi-Fi password here
+const char* ssid = "SSID";          // <-- Put your Wi-Fi name here
+const char* password = "password";  // <-- Put your Wi-Fi password here
 const String GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxwT9e3YZrS5edOHOC5mzscHdoVowIrmHhqRfyCFmy5fZwB3yMmjV0kBxuB4Fp1X8kH7Q/exec"; 
 
 // Pins
