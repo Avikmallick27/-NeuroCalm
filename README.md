@@ -243,10 +243,7 @@ SIH 26094 (Neuro Calm)/
 
 ## 👥 Contributors
 
-- **Anwesha Mondal** — [@AnweshaArc](https://github.com/AnweshaArc)
 - **Suman Karmakar** — [@suman-karmakar-01](https://github.com/suman-karmakar-01)
 - **Avik Mallick** — [@Avikmallick27](https://github.com/Avikmallick27)
-- **Arkajit Roy** — [@arkajit-roy](https://github.com/arkajit-roy)
-- **Monali De** — [@Mavisha1](https://github.com/Mavisha1)
 
 *Neuro Calm — Smart India Hackathon (SIH 26094).*
