@@ -2,7 +2,7 @@
   <img src="Frontend/assets/logo.png" alt="Neuro Calm Logo" width="160" style="border-radius: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.08);">
   <h1>Neuro Calm</h1>
   <p><strong>MIND TODAY. BRIGHTER TOMORROWS.</strong></p>
-  <p><em>Student Health & Biometric Telemetry System (SIH 26094)</em></p>
+  <p><em>Student Health & Biometric Telemetry System </em></p>
   <p><small>(Also aliased as Neuro Clam in competition registry)</small></p>
 </div>
 
