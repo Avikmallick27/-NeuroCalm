@@ -245,5 +245,3 @@ SIH 26094 (Neuro Calm)/
 
 - **Suman Karmakar** — [@suman-karmakar-01](https://github.com/suman-karmakar-01)
 - **Avik Mallick** — [@Avikmallick27](https://github.com/Avikmallick27)
-
-*Neuro Calm — Smart India Hackathon (SIH 26094).*
