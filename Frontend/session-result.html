@@ -1,9 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Neuro Track | Assessment Result</title>
+  <title>Neuro Calm | Assessment Result</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="pdfExport.js"></script>
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -12,8 +14,8 @@
   <header class="site-header">
     <div class="nav-container">
       <div class="brand">
-        <img src="assets/logo-icon.png" alt="Neuro Track Logo" class="brand-icon">
-        <span class="brand-name">Neuro Track</span>
+        <img src="assets/logo-icon.png" alt="Neuro Calm Logo" class="brand-icon">
+        <span class="brand-name">Neuro Calm <span class="brand-badge-v2">Calm v2.0</span></span>
       </div>
 
       <nav class="nav-menu">
@@ -99,7 +101,7 @@
 
         <!-- Prominent Non-Clinical Disclaimer Banner -->
         <div style="background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 12px 16px; border-radius: 6px; margin-bottom: 24px; color: #92400E; font-size: 0.9rem; font-weight: 500;">
-          ⚠️ <strong>Notice:</strong> Screening/educational result — not a clinical diagnosis. This educational prototype is intended for demonstration only.
+          âš ï¸ <strong>Notice:</strong> Screening/educational result â€” not a clinical diagnosis. This educational prototype is intended for demonstration only.
         </div>
 
         <!-- Result Overview Grid (2 Columns) -->
@@ -212,6 +214,24 @@
           </div>
         </div>
 
+        <!-- PILLAR 3: Abnormal Pattern Detection Monitor -->
+        <div class="abnormal-panel-card" style="margin-top: 24px; margin-bottom: 24px;" id="asmAbnormalPanel">
+          <div class="abnormal-panel-header">
+            <div class="abnormal-title">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                <path d="M12 2L1 21h22L12 2zm0 4l7.53 13H4.47L12 6zm-1 5v4h2v-4h-2zm0 6v2h2v-2h-2z"/>
+              </svg>
+              <span>3. Abnormal Pattern Detection Engine (Clinical Vitals Guard)</span>
+            </div>
+            <span class="badge" id="asmAbnormalBadge" style="background: #F0FDF4; color: #166534; font-weight: 700;">Normal Baseline</span>
+          </div>
+          <div id="asmAbnormalContainer">
+            <div class="abnormal-empty-state">
+              <span>✓ All monitored vitals are within normal baseline thresholds (No Tachycardia, Bradycardia, or SpO2 Hypoxemia).</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Result Action Buttons -->
         <div class="result-actions-footer">
           <a href="dashboard.html" class="btn btn-secondary">
@@ -223,15 +243,14 @@
           </a>
 
           <div class="action-buttons-right">
-            <button type="button" class="btn btn-secondary btn-download" onclick="window.print()">
-              <svg class="btn-icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <button type="button" class="btn btn-pdf-download" id="downloadAsmPdfBtn">
+              <svg class="btn-icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                 <polyline points="7 10 12 15 17 10"></polyline>
                 <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
-              Print / Save Report
+              Download Data PDF
             </button>
-
             <a href="session-intro.html" class="btn btn-primary" onclick="sessionStorage.removeItem('neurotrack_answers'); sessionStorage.removeItem('neurotech_answers');">
               <svg class="btn-icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="23 4 23 10 17 10"></polyline>
@@ -249,8 +268,8 @@
   <footer class="site-footer">
     <div class="footer-container">
       <div class="footer-left">
-        <span class="footer-brand">Neuro Track</span>
-        <span class="footer-desc">Screening & educational prototype — not a clinical diagnosis.</span>
+        <span class="footer-brand">Neuro Calm</span>
+        <span class="footer-desc">Screening & educational prototype â€” not a clinical diagnosis.</span>
       </div>
 
       <div class="footer-right">
@@ -260,64 +279,101 @@
   </footer>
 
   <script>
-    // Load result from sessionStorage or fetch latest from backend
-    let result = null;
-    try {
-      result = JSON.parse(
-        sessionStorage.getItem('neurotrack_last_result') || 
-        sessionStorage.getItem('neurotrack_latest_result') || 
-        sessionStorage.getItem('neurotech_last_result') || 
-        sessionStorage.getItem('neurotech_latest_result')
-      );
-    } catch (e) {
-      result = null;
-    }
-
     async function loadAssessmentResult() {
-      if (!result) {
-        // Try fetching latest from backend
-        let user = {};
-        try { 
-          user = JSON.parse(
-            localStorage.getItem('neurotrack_currentUser') || 
-            localStorage.getItem('neurotech_currentUser') || 
-            localStorage.getItem('currentUser')
-          ) || {}; 
-        } catch (e) {}
-        const userId = user.userId || user.uid || 'NT1001';
+      const urlParams = new URLSearchParams(window.location.search);
+      const paramId = urlParams.get('id');
+      const paramUserId = urlParams.get('userId');
 
+      let user = {};
+      try {
+        user = JSON.parse(
+          localStorage.getItem('neurocalm_currentUser') ||
+          localStorage.getItem('neurotrack_currentUser') || 
+          localStorage.getItem('neurotech_currentUser') || 
+          localStorage.getItem('currentUser')
+        ) || {};
+      } catch (e) {
+        user = {};
+      }
+      const userId = paramUserId || user.userId || user.uid || 'NT1001';
+
+      let result = null;
+
+      // 1. If explicit assessment ID passed in URL
+      if (paramId) {
         try {
-          const res = await fetch(`/api/session/latest/${userId}`).catch(() => fetch(`http://localhost:5000/api/session/latest/${userId}`));
+          const cached = JSON.parse(
+            sessionStorage.getItem('neurocalm_last_result') ||
+            sessionStorage.getItem('neurotrack_last_result') ||
+            sessionStorage.getItem('neurocalm_latest_result') ||
+            sessionStorage.getItem('neurotrack_latest_result')
+          );
+          if (cached && (cached.assessmentId === paramId || cached.id === paramId)) {
+            result = cached;
+          }
+        } catch (e) {}
+
+        if (!result) {
+          try {
+            const res = await fetch(/api/session/detail/${userId}/${paramId}).catch(() => fetch(http://localhost:5000/api/session/detail/${userId}/${paramId}));
+            const data = await res.json();
+            if (data && data.success && (data.result || data.session)) {
+              result = data.result || data.session;
+            }
+          } catch (e) {}
+        }
+      }
+
+      // 2. Read from session storage if not found yet
+      if (!result) {
+        try {
+          result = JSON.parse(
+            sessionStorage.getItem('neurocalm_last_result') ||
+            sessionStorage.getItem('neurotrack_last_result') || 
+            sessionStorage.getItem('neurocalm_latest_result') ||
+            sessionStorage.getItem('neurotrack_latest_result') || 
+            sessionStorage.getItem('neurotech_last_result') || 
+            sessionStorage.getItem('neurotech_latest_result')
+          );
+        } catch (e) {
+          result = null;
+        }
+      }
+
+      // 3. Fallback to latest assessment from server
+      if (!result) {
+        try {
+          const res = await fetch(/api/session/latest/${userId}).catch(() => fetch(http://localhost:5000/api/session/latest/${userId}));
           const data = await res.json();
-          if (data.success && (data.latest || data.session)) {
+          if (data && data.success && (data.latest || data.session)) {
             result = data.latest || data.session;
           }
         } catch (e) {}
       }
 
-      // If still no result, fallback to a balanced demo result
+      // 4. Default fallback if database empty
       if (!result) {
         result = {
           assessmentId: 'ASM-1001',
           dateFormatted: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
-          rawScore: 17,
-          score: 28,
+          rawScore: 16,
+          score: 27,
           riskLevel: 'LOW',
-          explanation: 'Your responses suggest minimal or mild indications of stress and emotional distress at this time.',
+          explanation: 'Your responses suggest minimal or mild indications of stress. Autonomic vitals are within healthy range.',
           recommendations: [
             'Maintain regular sleep and daily routines.',
-            'Continue healthy social connections.',
-            'Practice relaxation or breathing exercises.',
-            'Continue monitoring your well-being.'
+            'Continue healthy social connections and mindful rest.',
+            'Practice 0.1 Hz resonant breathing exercises during study sessions.',
+            'Continue monitoring your physiological well-being with your wearable band.'
           ],
           answers: []
         };
       }
 
-      // Populate elements
-      document.getElementById('timestampDisplay').innerHTML = `Completed on <strong>${result.dateFormatted || 'Recent Session'}</strong>`;
+      // Populate UI
+      document.getElementById('timestampDisplay').innerHTML = Completed on <strong> + (result.dateFormatted || 'Recent Session') + </strong>;
       document.getElementById('scoreNumber').textContent = result.score;
-      document.getElementById('rawScoreDisplay').textContent = `Raw Score: ${result.rawScore || Math.round(result.score * 0.6)} / 60`;
+      document.getElementById('rawScoreDisplay').textContent = Raw Score:  + (result.rawScore !== undefined ? result.rawScore : Math.round(result.score * 0.6)) +  / 60;
 
       const riskLevelVal = document.getElementById('riskLevelValue');
       const riskCard = document.getElementById('riskSummaryCard');
@@ -330,7 +386,6 @@
       feedbackNote.textContent = result.explanation || '';
       insightDesc.textContent = result.explanation || '';
 
-      // Set badge color classes
       riskCard.classList.remove('low-risk', 'moderate-risk', 'high-risk');
       riskLevelVal.classList.remove('text-low', 'text-moderate', 'text-high');
       scoreNum.classList.remove('text-low', 'text-moderate', 'text-high');
@@ -351,33 +406,30 @@
 
       // Render recommendations
       const recList = document.getElementById('recommendationList');
-      recList.innerHTML = '';
-      const recs = result.recommendations || [
-        'Maintain regular sleep and daily routines.',
-        'Continue healthy social connections.',
-        'Practice relaxation or breathing exercises.'
-      ];
-
-      recs.forEach(r => {
-        const li = document.createElement('li');
-        li.innerHTML = `
-          <svg class="check-icon-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-          <span>${r}</span>
-        `;
-        recList.appendChild(li);
-      });
+      if (recList) {
+        recList.innerHTML = '';
+        const recs = result.recommendations || [
+          'Maintain regular sleep and daily routines.',
+          'Continue healthy social connections.',
+          'Practice relaxation or breathing exercises.'
+        ];
+        recs.forEach(r => {
+          const li = document.createElement('li');
+          li.innerHTML = '<svg class="check-icon-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>' + r + '</span>';
+          recList.appendChild(li);
+        });
+      }
 
       // Find sleep answer from Q8 if present
       if (Array.isArray(result.answers)) {
-        const q8 = result.answers.find(a => a && a.questionNumber === 8);
+        const q8 = result.answers.find(a => a && (a.questionNumber === 8 || a.questionNumber === '8'));
         if (q8 && q8.selectedOption) {
-          document.getElementById('sleepStatDisplay').textContent = q8.selectedOption;
+          const sleepStatEl = document.getElementById('sleepStatDisplay');
+          if (sleepStatEl) sleepStatEl.textContent = q8.selectedOption;
         }
       }
 
-      // Check physiological vitals from ESP32
+      // Physiological vitals from wearable
       const hrEl = document.getElementById('hrStatDisplay');
       const hrSrc = document.getElementById('hrSourceDisplay');
       const spo2El = document.getElementById('spo2StatDisplay');
@@ -385,41 +437,61 @@
       const tempEl = document.getElementById('tempStatDisplay');
       const tempSrc = document.getElementById('tempSourceDisplay');
 
-      const isHwActive = result.vitals && result.vitals.isHardwareActive === true && typeof result.vitals.heartRate === 'number';
+      const vitalsObj = result.physiological || result.vitals || {};
+      const isHwActive = vitalsObj.isHardwareActive === true && typeof vitalsObj.heartRate === 'number';
 
       if (isHwActive) {
-        hrEl.innerHTML = `${result.vitals.heartRate} <small>bpm</small>`;
-        hrEl.style.color = '#0F172A';
+        if (hrEl) { hrEl.innerHTML = vitalsObj.heartRate + ' <small>bpm</small>'; hrEl.style.color = '#0F172A'; }
         if (hrSrc) hrSrc.textContent = 'Live ESP32 Stream';
-
-        spo2El.innerHTML = `${result.vitals.spo2} <small>%</small>`;
-        spo2El.style.color = '#0F172A';
+        if (spo2El) { spo2El.innerHTML = vitalsObj.spo2 + ' <small>%</small>'; spo2El.style.color = '#0F172A'; }
         if (spo2Src) spo2Src.textContent = 'Live ESP32 Stream';
-
-        if (tempEl) {
-          tempEl.innerHTML = `${result.vitals.temperature || '36.6'} <small>°C</small>`;
-          tempEl.style.color = '#0F172A';
-        }
+        if (tempEl) { tempEl.innerHTML = (vitalsObj.temperature || '36.6') + ' <small>°C</small>'; tempEl.style.color = '#0F172A'; }
         if (tempSrc) tempSrc.textContent = 'DS18B20 Sensor';
-
-        // If sleep hours recorded by wearable, reflect that or keep questionnaire
-        if (result.vitals.sleepHours) {
-          const sleepStat = document.getElementById('sleepStatDisplay');
-          if (sleepStat && (!result.answers || result.answers.length === 0)) {
-            sleepStat.textContent = `${result.vitals.sleepHours} hours`;
-          }
-        }
       } else {
-        hrEl.innerHTML = `<span style="font-size: 1.05rem; color: #64748B;">Not Applicable</span>`;
+        if (hrEl) hrEl.innerHTML = '<span style="font-size: 1.05rem; color: #64748B;">Not Applicable</span>';
         if (hrSrc) hrSrc.textContent = 'Hardware Not Connected';
-
-        spo2El.innerHTML = `<span style="font-size: 1.05rem; color: #64748B;">Not Applicable</span>`;
+        if (spo2El) spo2El.innerHTML = '<span style="font-size: 1.05rem; color: #64748B;">Not Applicable</span>';
         if (spo2Src) spo2Src.textContent = 'Hardware Not Connected';
-
-        if (tempEl) {
-          tempEl.innerHTML = `<span style="font-size: 1.05rem; color: #64748B;">Not Applicable</span>`;
-        }
+        if (tempEl) tempEl.innerHTML = '<span style="font-size: 1.05rem; color: #64748B;">Not Applicable</span>';
         if (tempSrc) tempSrc.textContent = 'Hardware Not Connected';
+      }
+
+      // Abnormal Pattern Detection
+      const abnormal = result.abnormalPattern || {};
+      const alerts = abnormal.alerts || [];
+      const asmbadge = document.getElementById('asmAbnormalBadge');
+      const asmContainer = document.getElementById('asmAbnormalContainer');
+
+      if (asmbadge && asmContainer) {
+        if (alerts.length > 0) {
+          asmbadge.textContent = alerts.length + ' ALERTS ACTIVE';
+          asmbadge.style.background = '#FEE2E2';
+          asmbadge.style.color = '#991B1B';
+          asmContainer.innerHTML = alerts.map(function(a) {
+            return '<div class="abnormal-alert-card">' +
+              '<div><span class="alert-metric-tag">[' + a.metric + ']</span> ' +
+              '<span class="alert-message-text">' + a.message + ' (Recorded: <strong>' + a.value + '</strong>)</span></div>' +
+              '<span class="alert-badge-critical">' + (a.severity || 'WARNING') + '</span>' +
+              '</div>';
+          }).join('');
+        } else {
+          asmbadge.textContent = 'Normal Baseline';
+          asmbadge.style.background = '#F0FDF4';
+          asmbadge.style.color = '#166534';
+          asmContainer.innerHTML = '<div class="abnormal-empty-state"><span>✓ All monitored vitals are within normal baseline thresholds (No Tachycardia, Bradycardia, or SpO2 Hypoxemia).</span></div>';
+        }
+      }
+
+      // PDF Download
+      const dlBtn = document.getElementById('downloadAsmPdfBtn');
+      if (dlBtn) {
+        dlBtn.onclick = function() {
+          if (window.NeuroCalmPDF) {
+            window.NeuroCalmPDF.downloadAssessmentPDF(result, user);
+          } else {
+            window.print();
+          }
+        };
       }
     }
 

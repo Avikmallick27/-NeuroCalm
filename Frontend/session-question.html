@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Neuro Track | Screening Assessment</title>
+  <title>Neuro Calm | Screening Assessment</title>
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -12,8 +12,8 @@
   <header class="site-header">
     <div class="nav-container">
       <div class="brand">
-        <img src="assets/logo-icon.png" alt="Neuro Track Logo" class="brand-icon">
-        <span class="brand-name">Neuro Track</span>
+        <img src="assets/logo-icon.png" alt="Neuro Calm Logo" class="brand-icon">
+        <span class="brand-name">Neuro Calm</span>
       </div>
 
       <nav class="nav-menu">
@@ -135,7 +135,7 @@
   <footer class="site-footer">
     <div class="footer-container">
       <div class="footer-left">
-        <span class="footer-brand">Neuro Track</span>
+        <span class="footer-brand">Neuro Calm</span>
         <span class="footer-desc">Screening & educational prototype — not a clinical diagnosis.</span>
       </div>
 
@@ -376,7 +376,7 @@
     // Load previously selected answers from sessionStorage if available
     let storedAnswers = [];
     try {
-      storedAnswers = JSON.parse(sessionStorage.getItem('neurotrack_answers') || sessionStorage.getItem('neurotech_answers')) || [];
+      storedAnswers = JSON.parse(sessionStorage.getItem('neurocalm_answers') || sessionStorage.getItem('neurotrack_answers') || sessionStorage.getItem('neurotech_answers')) || [];
     } catch (e) {
       storedAnswers = [];
     }
@@ -435,6 +435,7 @@
             selectedOption: opt.text,
             score: opt.score
           };
+          sessionStorage.setItem('neurocalm_answers', JSON.stringify(storedAnswers));
           sessionStorage.setItem('neurotrack_answers', JSON.stringify(storedAnswers));
           sessionStorage.setItem('neurotech_answers', JSON.stringify(storedAnswers));
 
@@ -509,6 +510,7 @@
             selectedOption: targetOption.text,
             score: targetOption.score
           };
+          sessionStorage.setItem('neurocalm_answers', JSON.stringify(storedAnswers));
           sessionStorage.setItem('neurotrack_answers', JSON.stringify(storedAnswers));
           sessionStorage.setItem('neurotech_answers', JSON.stringify(storedAnswers));
 

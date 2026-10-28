@@ -356,7 +356,7 @@ async function syncBatchFromFirebase(recordsMap) {
 function fetchLatestFromFirebase() {
   return new Promise((resolve) => {
     try {
-      const targetUrl = 'https://neuro-tech-01-default-rtdb.firebaseio.com/sensorHistory.json?orderBy=%22%24key%22&endAt=%22-%7E%22&limitToLast=35';
+      const targetUrl = `${databaseURL}/sensorHistory.json?orderBy=%22%24key%22&endAt=%22-%7E%22&limitToLast=35`;
       const req = https.get(targetUrl, { timeout: 2500 }, (res) => {
         let rawData = '';
         res.on('data', chunk => rawData += chunk);
@@ -433,6 +433,49 @@ router.post('/data', async (req, res) => {
   }
 });
 
+// Detect abnormal patterns on real-time physiological telemetry
+function detectAbnormalPatternFromReading(reading) {
+  const alerts = [];
+  const hr = (reading && typeof reading.heartRate === 'number') ? reading.heartRate : null;
+  const spo2 = (reading && typeof reading.spo2 === 'number') ? reading.spo2 : null;
+  const temp = (reading && typeof reading.temperature === 'number') ? reading.temperature : null;
+
+  if (hr !== null) {
+    if (hr > 120) {
+      alerts.push({ type: 'CRITICAL_TACHYCARDIA', severity: 'CRITICAL', metric: 'PPG Heart Rate', value: `${hr} BPM`, baseline: '60 – 100 BPM', message: 'Critical Tachycardia: Heart rate surge above 120 BPM.' });
+    } else if (hr > 100) {
+      alerts.push({ type: 'ELEVATED_HEART_RATE', severity: 'HIGH', metric: 'PPG Heart Rate', value: `${hr} BPM`, baseline: '60 – 100 BPM', message: 'Tachycardia / Elevated heart rate (> 100 BPM).' });
+    } else if (hr < 45) {
+      alerts.push({ type: 'CRITICAL_BRADYCARDIA', severity: 'CRITICAL', metric: 'PPG Heart Rate', value: `${hr} BPM`, baseline: '60 – 100 BPM', message: 'Critical Bradycardia: Heart rate dropped below 45 BPM.' });
+    } else if (hr < 55) {
+      alerts.push({ type: 'LOW_HEART_RATE', severity: 'MEDIUM', metric: 'PPG Heart Rate', value: `${hr} BPM`, baseline: '60 – 100 BPM', message: 'Bradycardia: Heart rate below normal 55 BPM threshold.' });
+    }
+  }
+
+  if (spo2 !== null) {
+    if (spo2 < 90) {
+      alerts.push({ type: 'CRITICAL_HYPOXIA', severity: 'CRITICAL', metric: 'Blood Oxygen (SpO2)', value: `${spo2}%`, baseline: '95 – 100%', message: 'Severe Hypoxemia: SpO2 desaturation below 90%.' });
+    } else if (spo2 < 95) {
+      alerts.push({ type: 'LOW_SPO2', severity: 'HIGH', metric: 'Blood Oxygen (SpO2)', value: `${spo2}%`, baseline: '95 – 100%', message: 'Hypoxemia warning: Blood oxygen dropped below 95%.' });
+    }
+  }
+
+  if (temp !== null) {
+    if (temp >= 37.8) {
+      alerts.push({ type: 'HIGH_TEMP', severity: 'HIGH', metric: 'Body Temperature', value: `${temp} °C`, baseline: '36.1 – 37.2 °C', message: 'Fever / High body temperature spike detected.' });
+    } else if (temp < 35.0 && temp > 15.0) {
+      alerts.push({ type: 'LOW_TEMP', severity: 'MEDIUM', metric: 'Body Temperature', value: `${temp} °C`, baseline: '36.1 – 37.2 °C', message: 'Hypothermia: Low body temperature recorded.' });
+    }
+  }
+
+  return {
+    hasAbnormalPattern: alerts.length > 0,
+    count: alerts.length,
+    alerts,
+    summary: alerts.length > 0 ? `${alerts.length} abnormal physiological alert(s) active.` : 'Physiological telemetry is within standard baseline.'
+  };
+}
+
 // Live current reading for user dashboard, live monitor, and statistics (supports any registered userId)
 router.get('/live/:userId', async (req, res) => {
   const { userId } = req.params;
@@ -440,12 +483,16 @@ router.get('/live/:userId', async (req, res) => {
   try {
     if (userId && userId.startsWith('TEST_DISCONNECTED')) {
       const disconnected = getDisconnectedPoint(0);
+      const abnormal = detectAbnormalPatternFromReading(disconnected);
       return res.json({
         success: true,
         ...disconnected,
         userId,
-        telemetry: { ...disconnected, userId },
-        data: { ...disconnected, userId },
+        signalType: 'PPG (Photoplethysmogram)',
+        physiological: { ...disconnected, userId, signalType: 'PPG' },
+        abnormalPattern: abnormal,
+        telemetry: { ...disconnected, userId, signalType: 'PPG' },
+        data: { ...disconnected, userId, signalType: 'PPG' },
         isHardwareActive: false
       });
     }
@@ -459,12 +506,16 @@ router.get('/live/:userId', async (req, res) => {
     if (userLive && userLive.timestamp && userLive.userId === userId) {
       const userTs = Number(userLive.timestamp) || 0;
       if ((Date.now() - userTs) <= HARDWARE_TIMEOUT_MS) {
+        const abnormal = detectAbnormalPatternFromReading(userLive);
         return res.json({
           success: true,
           ...userLive,
           userId,
-          telemetry: { ...userLive, userId },
-          data: { ...userLive, userId },
+          signalType: 'PPG (Photoplethysmogram)',
+          physiological: { ...userLive, userId, signalType: 'PPG' },
+          abnormalPattern: abnormal,
+          telemetry: { ...userLive, userId, signalType: 'PPG' },
+          data: { ...userLive, userId, signalType: 'PPG' },
           isHardwareActive: true
         });
       }
@@ -472,36 +523,60 @@ router.get('/live/:userId', async (req, res) => {
 
     // 2. Check if global hardware stream is active within 1 minute
     if (isHardwareCurrentlyActive(userId)) {
+      const abnormal = detectAbnormalPatternFromReading(latestHardwareReading);
       return res.json({
         success: true,
         ...latestHardwareReading,
         userId,
-        telemetry: { ...latestHardwareReading, userId },
-        data: { ...latestHardwareReading, userId },
+        signalType: 'PPG (Photoplethysmogram)',
+        physiological: { ...latestHardwareReading, userId, signalType: 'PPG' },
+        abnormalPattern: abnormal,
+        telemetry: { ...latestHardwareReading, userId, signalType: 'PPG' },
+        data: { ...latestHardwareReading, userId, signalType: 'PPG' },
         isHardwareActive: true
       });
     }
 
     // 3. Hardware is disconnected or timed out (> 60 seconds without data)
     const disconnected = getDisconnectedPoint(0);
+    const abnormal = detectAbnormalPatternFromReading(disconnected);
     return res.json({
       success: true,
       ...disconnected,
       userId,
-      telemetry: { ...disconnected, userId },
-      data: { ...disconnected, userId },
+      signalType: 'PPG (Photoplethysmogram)',
+      physiological: { ...disconnected, userId, signalType: 'PPG' },
+      abnormalPattern: abnormal,
+      telemetry: { ...disconnected, userId, signalType: 'PPG' },
+      data: { ...disconnected, userId, signalType: 'PPG' },
       isHardwareActive: false
     });
   } catch (err) {
     const disconnected = getDisconnectedPoint(0);
+    const abnormal = detectAbnormalPatternFromReading(disconnected);
     return res.json({
       success: true,
       ...disconnected,
       userId,
-      telemetry: { ...disconnected, userId },
-      data: { ...disconnected, userId },
+      signalType: 'PPG (Photoplethysmogram)',
+      physiological: { ...disconnected, userId, signalType: 'PPG' },
+      abnormalPattern: abnormal,
+      telemetry: { ...disconnected, userId, signalType: 'PPG' },
+      data: { ...disconnected, userId, signalType: 'PPG' },
       isHardwareActive: false
     });
+  }
+});
+
+// Dedicated abnormal pattern endpoint
+router.get('/abnormal/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const live = await dbHelper.get(`liveData/${userId}`) || await dbHelper.get('liveData/global') || getDisconnectedPoint(0);
+    const abnormal = detectAbnormalPatternFromReading(live);
+    res.json({ success: true, userId, abnormalPattern: abnormal });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to evaluate abnormal patterns' });
   }
 });
 

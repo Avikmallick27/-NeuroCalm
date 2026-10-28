@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 require('dotenv').config();
+const { FIREBASE_DB_ID, FIREBASE_DATABASE_URL } = require('./firebaseConfig');
 
 const serviceAccountPath = path.join(__dirname, 'serviceAccountKey.json');
 let serviceAccount = { project_id: 'neuro-tech-01' };
@@ -20,7 +21,7 @@ const defaultStore = {
     auth_01: {
       id: 'auth_01',
       fullName: 'Dr. Admin Counselor',
-      email: 'admin@neurotrack.com',
+      email: 'admin@neurocalm.com',
       phone: '9876543210',
       password: 'admin123',
       role: 'authority',
@@ -80,7 +81,7 @@ if (!admin.apps.length && serviceAccount.private_key) {
 let db = null;
 let isFirebaseOnline = false;
 
-const databaseURL = process.env.FIREBASE_DATABASE_URL || `https://${serviceAccount.project_id}-default-rtdb.firebaseio.com`;
+const databaseURL = FIREBASE_DATABASE_URL;
 
 // Probes the database URL before attaching the SDK client
 function probeFirebase(urlStr) {
@@ -190,5 +191,7 @@ module.exports = {
   get db() { return db; },
   get isFirebaseOnline() { return isFirebaseOnline; },
   databaseURL,
+  FIREBASE_DB_ID,
+  FIREBASE_DATABASE_URL,
   dbHelper
 };

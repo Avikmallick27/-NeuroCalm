@@ -1,9 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Neuro Track | History</title>
+  <title>Neuro Calm | History</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="pdfExport.js"></script>
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -12,8 +14,8 @@
   <header class="site-header">
     <div class="nav-container">
       <div class="brand">
-        <img src="assets/logo-icon.png" alt="Neuro Track Logo" class="brand-icon">
-        <span class="brand-name">Neuro Track</span>
+        <img src="assets/logo-icon.png" alt="Neuro Calm Logo" class="brand-icon">
+        <span class="brand-name">Neuro Calm <span class="brand-badge-v2">Calm v2.0</span></span>
       </div>
 
       <nav class="nav-menu">
@@ -103,13 +105,13 @@
             <p class="page-subtitle">View and track your past assessment sessions.</p>
           </div>
 
-          <a href="session-intro.html" class="btn btn-primary">
+          <div style="display:flex; gap:10px;"><button type="button" class="btn btn-pdf-download" id="downloadFullHistoryPdfBtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Download History PDF</button><a href="session-intro.html" class="btn btn-primary">
             <svg class="btn-icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
             Take New Assessment
-          </a>
+          </a></div>
         </div>
 
         <!-- Filter Bar -->
@@ -276,7 +278,7 @@
   <footer class="site-footer">
     <div class="footer-container">
       <div class="footer-left">
-        <span class="footer-brand">Neuro Track</span>
+        <span class="footer-brand">Neuro Calm</span>
         <span class="footer-desc">A student initiative for a healthier tomorrow.</span>
       </div>
 
@@ -477,6 +479,16 @@
       document.getElementById('timeFilterSelect').value = 'ALL';
       document.getElementById('riskFilterSelect').value = 'ALL';
       renderTable(allSessions);
+    });
+
+        document.getElementById('downloadFullHistoryPdfBtn')?.addEventListener('click', () => {
+      let u = {};
+      try { u = JSON.parse(localStorage.getItem('neurotrack_currentUser') || localStorage.getItem('currentUser')) || {}; } catch(e){}
+      if (allSessions.length > 0 && window.NeuroCalmPDF) {
+        window.NeuroCalmPDF.downloadAssessmentPDF(allSessions[0], u);
+      } else {
+        window.print();
+      }
     });
 
     loadSessions();

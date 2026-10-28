@@ -61,7 +61,7 @@ router.post('/authority-login', async (req, res) => {
     const cleanIdent = identifier.trim().toLowerCase();
     const authority = authList.find(a => 
       (a.email && a.email.toLowerCase() === cleanIdent) || 
-      (a.email && (cleanIdent === 'admin@neurotrack.com' || cleanIdent === 'admin@neurotech.com') && (a.email.toLowerCase() === 'admin@neurotrack.com' || a.email.toLowerCase() === 'admin@neurotech.com')) ||
+      (a.email && (cleanIdent === 'admin@neurocalm.com' || cleanIdent === 'admin@neuroclam.com' || cleanIdent === 'admin@neurotrack.com' || cleanIdent === 'admin@neurotech.com') && (a.email.toLowerCase() === 'admin@neurocalm.com' || a.email.toLowerCase() === 'admin@neuroclam.com' || a.email.toLowerCase() === 'admin@neurotrack.com' || a.email.toLowerCase() === 'admin@neurotech.com')) ||
       (a.phone && a.phone.replace(/\D/g, '') === identifier.replace(/\D/g, ''))
     );
 

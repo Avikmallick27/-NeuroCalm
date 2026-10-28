@@ -1,20 +1,22 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Neuro Track | User Details</title>
+  <title>Neuro Calm | User Details</title>
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="pdfExport.js"></script>
 </head>
 <body class="authority-body">
   <!-- Authority Top Navigation Bar -->
   <header class="site-header authority-header">
     <div class="nav-container">
       <div class="brand">
-        <img src="assets/logo-icon.png" alt="Neuro Track Logo" class="brand-icon">
+        <img src="assets/logo-icon.png" alt="Neuro Calm Logo" class="brand-icon">
         <div class="brand-text-stack">
-          <span class="brand-name">Neuro Track</span>
+          <span class="brand-name">Neuro Calm</span>
           <span class="brand-sub">Mental Health. Brighter Tomorrows.</span>
         </div>
       </div>
@@ -86,6 +88,7 @@
             </svg>
             <span>Back to Users</span>
           </a>
+          <button type="button" class="btn btn-pdf-download" id="downloadPatientDossierBtn" style="margin-left: auto;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Download Patient PDF Report</button>
         </div>
 
         <!-- User Profile Hero Header Card -->
@@ -371,7 +374,7 @@
   <footer class="site-footer">
     <div class="footer-container">
       <div class="footer-left">
-        <span class="footer-brand">Neuro Track</span>
+        <span class="footer-brand">Neuro Calm</span>
         <span class="footer-desc">A student initiative for a healthier tomorrow.</span>
       </div>
 
@@ -459,12 +462,13 @@
               <td>20-Question Screening</td>
               <td><span class="badge ${badgeClass}">${s.riskLevel}</span></td>
               <td><strong>${s.score}</strong> / 100</td>
-              <td><a href="session-result.html" class="btn-sub-action view-btn">View</a></td>
+              <td><a href="session-result.html" class="btn-sub-action view-btn" style="margin-right:4px;">View</a><button type="button" class="btn-sub-action row-pdf-btn" style="background:#0284C7; color:#fff; border:none; padding:3px 6px; border-radius:4px; cursor:pointer;">PDF</button></td>
             `;
             tr.querySelector('.view-btn').onclick = () => {
               sessionStorage.setItem('neurotrack_latest_result', JSON.stringify(s));
               sessionStorage.setItem('neurotech_latest_result', JSON.stringify(s));
             };
+            const pdfB = tr.querySelector(".row-pdf-btn"); if (pdfB) { pdfB.onclick = () => { if (window.NeuroCalmPDF) window.NeuroCalmPDF.downloadAssessmentPDF(s, currentUserData || { fullName: document.getElementById("detailFullName")?.innerText, uid: userId }); }; }
             tbody.appendChild(tr);
           });
 

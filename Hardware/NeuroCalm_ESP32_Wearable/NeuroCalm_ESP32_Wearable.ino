@@ -1,4 +1,4 @@
-#include <WiFi.h>
+﻿#include <WiFi.h>
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <Wire.h>
@@ -14,8 +14,14 @@
 const char* ssid = "NAME";
 const char* password = "password";
 
+// ============================================================================
+// FIREBASE DATABASE ID CONFIGURATION
+// If your URL is https://test-project93-default-rtdb.firebaseio.com,
+// then the id is "test-project93-default-rtdb"
+// ============================================================================
+const char* firebaseDbId = "test-project93-default-rtdb";
 const char* firebaseURL =
-  "https://neuro-tech-01-default-rtdb.firebaseio.com/sensorHistory.json";
+  "https://test-project93-default-rtdb.firebaseio.com/sensorHistory.json"; // ID: test-project93-default-rtdb
 
 #define SDA_PIN 21
 #define SCL_PIN 22
@@ -78,7 +84,7 @@ void setup()
   oled.setFont(u8g2_font_6x10_tf);
 
   oled.clearBuffer();
-  oled.drawStr(0, 15, "Neuro Track");
+  oled.drawStr(0, 15, "Neuro Calm");
   oled.drawStr(0, 30, "Connecting...");
   oled.sendBuffer();
 

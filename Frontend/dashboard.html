@@ -1,9 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Neuro Track | Dashboard</title>
+  <title>Neuro Calm | Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="pdfExport.js"></script>
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -12,8 +14,8 @@
   <header class="site-header">
     <div class="nav-container">
       <div class="brand">
-        <img src="assets/logo-icon.png" alt="Neuro Track Logo" class="brand-icon">
-        <span class="brand-name">Neuro Track</span>
+        <img src="assets/logo-icon.png" alt="Neuro Calm Logo" class="brand-icon">
+        <span class="brand-name">Neuro Calm <span class="brand-badge-v2">Calm v2.0</span></span>
       </div>
 
       <nav class="nav-menu">
@@ -151,7 +153,7 @@
                 </svg>
               </div>
               <div>
-                <span class="stat-card-title">Wearable Sensor</span>
+                <span class="stat-card-title">Optical PPG Sensor (ESP32)</span>
                 <span id="wearableStatusLabel" style="font-size: 0.75rem; color: #64748B; font-weight: 600; display: block;">● Hardware Disconnected</span>
               </div>
             </div>
@@ -266,7 +268,7 @@
           </div>
           <div class="alert-content">
             <strong class="alert-title">Screening & Monitoring Support Tool</strong>
-            <p class="alert-text">Neuro Track provides algorithmic screening indicators and is not a clinical medical diagnosis. If you experience severe distress, please consult a healthcare professional.</p>
+            <p class="alert-text">Neuro Calm provides algorithmic screening indicators and is not a clinical medical diagnosis. If you experience severe distress, please consult a healthcare professional.</p>
           </div>
         </div>
       </section>
@@ -277,7 +279,7 @@
   <footer class="site-footer">
     <div class="footer-container">
       <div class="footer-left">
-        <span class="footer-brand">Neuro Track</span>
+        <span class="footer-brand">Neuro Calm</span>
         <span class="footer-desc">A student initiative for a healthier tomorrow.</span>
       </div>
 
