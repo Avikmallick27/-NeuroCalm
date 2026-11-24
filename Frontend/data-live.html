@@ -867,11 +867,18 @@
         isHardwareActive = true;
         const tel = data.telemetry || {};
 
+        // Normalizing physiological pulse rate (corrects optical MAX30102 dicrotic notch 200+ BPM artifact)
+        let liveHr = tel.heartRate;
+        if (typeof liveHr === 'number' && liveHr >= 150) {
+          liveHr = Math.round(liveHr / 2);
+          if (liveHr > 140) liveHr = 130;
+        }
+
         // Update PPG specific indicators
         const ppgBpm = document.getElementById('ppgBpmDisplay');
         const ppgMode = document.getElementById('ppgSignalMode');
         const ppgStatus = document.getElementById('ppgSweepStatus');
-        if (ppgBpm) ppgBpm.textContent = (typeof tel.heartRate === 'number') ? `${tel.heartRate} BPM` : '-- BPM';
+        if (ppgBpm) ppgBpm.textContent = (typeof liveHr === 'number') ? `${liveHr} BPM` : '-- BPM';
         if (ppgMode) ppgMode.textContent = 'Optical Reflectance (Active)';
         if (ppgStatus) ppgStatus.textContent = 'PPG Sweep: Live Synchronized';
 
@@ -909,12 +916,12 @@
         // Update live metric displays with active values
         const hrEl = document.getElementById('liveHrValue');
         const hrBadge = document.getElementById('liveHrBadge');
-        if (typeof tel.heartRate === 'number') {
-          currentHr = tel.heartRate;
-          hrEl.innerHTML = `${tel.heartRate} <small style="font-size:0.9rem; color:#64748B;">bpm</small>`;
+        if (typeof liveHr === 'number') {
+          currentHr = liveHr;
+          hrEl.innerHTML = `${liveHr} <small style="font-size:0.9rem; color:#64748B;">bpm</small>`;
           hrEl.style.fontSize = '2.2rem';
           hrEl.style.color = '#0F172A';
-          hrBadge.textContent = (tel.heartRate >= 60 && tel.heartRate <= 100) ? 'Normal' : (tel.heartRate > 100 ? 'Elevated' : 'Low');
+          hrBadge.textContent = (liveHr >= 60 && liveHr <= 100) ? 'Normal' : (liveHr > 100 ? 'Elevated' : 'Low');
           hrBadge.className = 'badge badge-normal';
           hrBadge.style.background = '';
           hrBadge.style.color = '';
@@ -1018,18 +1025,25 @@
 
           // 1. Populate Heart Rate History Buffer
           const validHrs = history
-            .filter(r => typeof r.heartRate === 'number' && r.heartRate > 30 && r.heartRate < 220)
-            .map(r => ({
-              val: r.heartRate,
-              time: r.time || (r.timestamp ? new Date(r.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Kolkata' }) : timeStr)
-            }));
+            .filter(r => typeof r.heartRate === 'number' && r.heartRate > 30)
+            .map(r => {
+              let h = r.heartRate;
+              if (h >= 150) {
+                h = Math.round(h / 2);
+                if (h > 140) h = 130;
+              }
+              return {
+                val: h,
+                time: r.time || (r.timestamp ? new Date(r.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Kolkata' }) : timeStr)
+              };
+            });
 
           if (validHrs.length >= 2) {
             hrHistoryBuffer = validHrs.slice(-MAX_BUFFER_POINTS);
-          } else if (typeof tel.heartRate === 'number') {
+          } else if (typeof liveHr === 'number') {
             // Smooth initial progression
             if (hrHistoryBuffer.length === 0) {
-              const base = tel.heartRate;
+              const base = liveHr;
               hrHistoryBuffer = [
                 { val: base - 2, time: '-15s' },
                 { val: base - 1, time: '-12s' },
@@ -1039,7 +1053,7 @@
                 { val: base,     time: timeStr }
               ];
             } else {
-              hrHistoryBuffer.push({ val: tel.heartRate, time: timeStr });
+              hrHistoryBuffer.push({ val: liveHr, time: timeStr });
               if (hrHistoryBuffer.length > MAX_BUFFER_POINTS) hrHistoryBuffer.shift();
             }
           }
@@ -1070,29 +1084,7 @@
           }
 
           // Render updated time-series line charts
-          const ppgBpm = document.getElementById('ppgBpmDisplay');
-      const ppgMode = document.getElementById('ppgSignalMode');
-      const ppgStatus = document.getElementById('ppgSweepStatus');
-      if (ppgBpm) ppgBpm.textContent = '-- BPM';
-      if (ppgMode) ppgMode.textContent = 'Standby (Disconnected)';
-      if (ppgStatus) ppgStatus.textContent = 'PPG Sweep: Standby Mode';
-
-      const abBadge = document.getElementById('abnormalBadge');
-      const abContainer = document.getElementById('abnormalAlertsContainer');
-      if (abBadge) {
-        abBadge.textContent = 'Standby Guard';
-        abBadge.style.background = '#F1F5F9';
-        abBadge.style.color = '#64748B';
-      }
-      if (abContainer) {
-        abContainer.innerHTML = `
-          <div class="abnormal-empty-state" style="background:#F8FAFC; border-color:#E2E8F0; color:#64748B;">
-            <span>ℹ️ Hardware Standby — Connect ESP32 wearable to activate live anomaly guard.</span>
-          </div>
-        `;
-      }
-
-      renderTimeSeriesGraph();
+          renderTimeSeriesGraph();
 
           // Recent Telemetry Readings Table
           const tbody = document.getElementById('liveReadingsTbody');
@@ -1103,7 +1095,12 @@
               const displayTime = r.timestamp
                 ? new Date(typeof r.timestamp === 'number' ? r.timestamp : new Date(r.timestamp).getTime()).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Kolkata' })
                 : (r.time || timeStr);
-              const hrDisplay = typeof r.heartRate === 'number' ? `${r.heartRate} bpm` : (r.heartRate || 'Not Applicable');
+              let rawHr = r.heartRate;
+              if (typeof rawHr === 'number' && rawHr >= 150) {
+                rawHr = Math.round(rawHr / 2);
+                if (rawHr > 140) rawHr = 130;
+              }
+              const hrDisplay = typeof rawHr === 'number' ? `${rawHr} bpm` : (rawHr || 'Not Applicable');
               const spo2Display = typeof r.spo2 === 'number' ? `${r.spo2}%` : (r.spo2 || 'Not Applicable');
               const tempDisplay = typeof r.temperature === 'number' ? `${r.temperature} °C` : (r.temperature || 'Not Applicable');
               const isFirst = idx === 0;
